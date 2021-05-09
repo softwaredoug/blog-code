@@ -1,18 +1,28 @@
 import requests
-from os import path
+import os
+import tarfile
+
+
+def explode_tgz(filepath, dest='data/'):
+    tar = tarfile.open(filepath, 'r')
+    for member in tar.getmembers():
+        print(f"Extracting {member.name} to {dest}")
+
+    tar.extractall(path=dest)
+    tar.close()
+
 
 def download_one(uri, dest='data/', force=False):
-    import os
-
     if not os.path.exists(dest):
         os.makedirs(dest)
 
     if not os.path.isdir(dest):
         raise ValueError("dest {} is not a directory".format(dest))
 
-    filename = uri[uri.rfind('/') + 1:]
+    filename = os.path.basename(uri)
+    ext = os.path.splitext(filename)
     filepath = os.path.join(dest, filename)
-    if path.exists(filepath):
+    if os.path.exists(filepath):
         if not force:
             print(filepath + ' already exists')
             return
@@ -24,6 +34,12 @@ def download_one(uri, dest='data/', force=False):
         for chunk in resp.iter_content(chunk_size=1024):
             if chunk:
                 out.write(chunk)
+
+    if len(ext) > 1:
+        ext = ext[1]
+        if ext == '.tgz' or ext == '.tar.gz' or ext == '.tar':
+            explode_tgz(filepath, dest=dest)
+
 
 def download(uris, dest='data/', force=False):
     for uri in uris:
